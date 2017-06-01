@@ -76,6 +76,9 @@ class SentenceParser:
 
     def get_all_headers(self):
         return list(self.data.columns.values)
+    
+    def get_column(self,column):
+        return self.data[column].values.tolist()
 
     def processtext(self, column, removeSymbol = True, remove_stopwords=False):
         logger.info("Start Data Cleaning...")
