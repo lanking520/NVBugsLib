@@ -4,6 +4,7 @@ import re
 import pandas as pd
 import os.path
 import logging
+from sklearn.feature_extraction.text import CountVectorizer
 from nltk.corpus import stopwords
 from bs4 import BeautifulSoup
 import sys
@@ -102,11 +103,31 @@ class SentenceParser:
         print "\n"
         return tempcol
 
+    def create_vectorizer(self, text, max_features = 1000):
+    	logger.info("Creating Counting Vectorizer...")
+    	self.vectorizer = CountVectorizer(analyzer = "word",   \
+                             tokenizer = None,    \
+                             preprocessor = None, \
+                             stop_words = None,   \
+                             max_features = max_features)
+
+    	data_vector = self.vectorizer.fit_transform(text)
+    	data_vector = data_vector.toarray()
+    	vocab = self.vectorizer.get_feature_names()
+    	self.data_df = pd.DataFrame(data=data_vector, columns=vocab)
+    	return self.data_df
+
+    def get_top(self):
+    	return self.data_df.sum().sort_values(ascending=False)
+
+
+
 if __name__ == '__main__':
     SP = SentenceParser(10)
-    SP.readfile('./nvbugs.json','json')
+    SP.readfile('../NVIDIA_TEMP/dataset/nvbugs.json','json')
     SP.importdata(SP.data)
     SP.dfmerge(['Module','Description','Synopsis'],'X')
     # print SP.processtext('X', True, False)[0]
-    text = SP.processtext('X', True, True)[0]
-    print text
+    text = SP.processtext('X', True, True)
+    print SP.create_vectorizer(text)
+    print SP.get_top()[0:20]
