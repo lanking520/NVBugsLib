@@ -75,7 +75,7 @@ class SentenceParser:
         for header in columns:
             self.data[name] += ' ' + self.data[header]
 
-    def splitbycolumn(self,column):
+    def splitbycolumn(self,column, reset_index = False):
         logger.info("Start Spliting data through the column values")
         mylist = self.data[column].unique()
         print "Unique Values: " + str(mylist)
@@ -83,7 +83,10 @@ class SentenceParser:
         printProgressBar(0, mylist.shape[0], prefix='Progress:', suffix='Complete', length=50)
         idx =0
         for row in mylist:
-            result[row] = self.data.loc[self.data[column] == row]
+        	if reset_index:
+            	result[row] = self.data.loc[self.data[column] == row].reset_index()
+            else:
+            	result[row] = self.data.loc[self.data[column] == row]
             printProgressBar(idx+1, mylist.shape[0], prefix='Progress:', suffix='Complete', length=50)
             idx += 1
         return result
