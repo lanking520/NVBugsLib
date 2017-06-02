@@ -75,9 +75,22 @@ class SentenceParser:
         for header in columns:
             self.data[name] += ' ' + self.data[header]
 
+    def splitbycolumn(self,column):
+        logger.info("Start Spliting data through the column values")
+        mylist = self.data[column].unique()
+        print "Unique Values: " + str(mylist)
+        result = {}
+        printProgressBar(0, mylist.shape[0], prefix='Progress:', suffix='Complete', length=50)
+        idx =0
+        for row in mylist:
+            result[row] = self.data.loc[self.data[column] == row]
+            printProgressBar(idx+1, mylist.shape[0], prefix='Progress:', suffix='Complete', length=50)
+            idx += 1
+        return result
+
     def get_all_headers(self):
         return list(self.data.columns.values)
-    
+
     def get_column(self,column):
         return self.data[column].values.tolist()
 
@@ -99,26 +112,26 @@ class SentenceParser:
                 words = [w for w in words if not w in stops and not w.replace('.', '', 1).isdigit()]
             row = ' '.join(words)
             tempcol[i] = row.lower()
-            printProgressBar(i, len(tempcol), prefix='Progress:', suffix='Complete', length=50)
+            printProgressBar(i+1, len(tempcol), prefix='Progress:', suffix='Complete', length=50)
         print "\n"
         return tempcol
 
     def create_vectorizer(self, text, max_features = 1000):
-    	logger.info("Creating Counting Vectorizer...")
-    	self.vectorizer = CountVectorizer(analyzer = "word",   \
-                             tokenizer = None,    \
-                             preprocessor = None, \
-                             stop_words = None,   \
+        logger.info("Creating Counting Vectorizer...")
+        self.vectorizer = CountVectorizer(analyzer = "word",
+                             tokenizer = None,
+                             preprocessor = None,
+                             stop_words = None,
                              max_features = max_features)
 
-    	data_vector = self.vectorizer.fit_transform(text)
-    	data_vector = data_vector.toarray()
-    	vocab = self.vectorizer.get_feature_names()
-    	self.data_df = pd.DataFrame(data=data_vector, columns=vocab)
-    	return self.data_df
+        data_vector = self.vectorizer.fit_transform(text)
+        data_vector = data_vector.toarray()
+        vocab = self.vectorizer.get_feature_names()
+        self.data_df = pd.DataFrame(data=data_vector, columns=vocab)
+        return self.data_df
 
     def get_top(self):
-    	return self.data_df.sum().sort_values(ascending=False)
+        return self.data_df.sum().sort_values(ascending=False)
 
 
 
@@ -131,3 +144,4 @@ if __name__ == '__main__':
     text = SP.processtext('X', True, True)
     print SP.create_vectorizer(text)
     print SP.get_top()[0:20]
+    print SP.splitbycolumn('Module').values()[0]
