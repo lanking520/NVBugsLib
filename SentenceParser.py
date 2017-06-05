@@ -83,11 +83,12 @@ class SentenceParser:
         printProgressBar(0, mylist.shape[0], prefix='Progress:', suffix='Complete', length=50)
         idx =0
         for row in mylist:
-        	if reset_index:
-            	result[row] = self.data.loc[self.data[column] == row].reset_index(drop = True)
+            if reset_index:
+                result[row] = self.data.loc[self.data[column] == row].reset_index(drop = True)
             else:
-            	result[row] = self.data.loc[self.data[column] == row]
+                result[row] = self.data.loc[self.data[column] == row]
             printProgressBar(idx+1, mylist.shape[0], prefix='Progress:', suffix='Complete', length=50)
+            print "\nThe Shape of "+ row + " is "+str(result[row].shape)
             idx += 1
         return result
 
