@@ -8,12 +8,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 from nltk.corpus import stopwords
 from bs4 import BeautifulSoup
 import sys
-default_stdout = sys.stdout
-default_stderr = sys.stderr
-reload(sys)
-sys.setdefaultencoding('utf-8')
-sys.stdout = default_stdout
-sys.stderr = default_stderr
 
 logger = logging.getLogger(__name__)
 
