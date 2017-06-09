@@ -92,7 +92,7 @@ class SentenceParser:
     def get_column(self,column):
         return self.data[column].values.tolist()
 
-    def processtext(self, column, removeSymbol = True, remove_stopwords=False):
+    def processtext(self, column, removeSymbol = True, remove_stopwords=False, stemming=False):
         logger.info("Start Data Cleaning...")
         self.data[column] = self.data[column].str.replace(r'[\n\r\t]+', ' ')
         # Remove URLs
@@ -130,6 +130,9 @@ class SentenceParser:
 
     def get_top(self):
         return self.data_df.sum().sort_values(ascending=False)
+
+    def get_sample(self, num):
+        return self.data.sample(num)
 
 
 
