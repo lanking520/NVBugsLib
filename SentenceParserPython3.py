@@ -114,12 +114,26 @@ class SentenceParser:
         print("\n")
         return tempcol
 
-    def create_vectorizer(self, text, max_features = 1000):
+    def processline(self, line, removeSymbol = True, remove_stopwords=False):
+        line.replace(r'[\n\r\t]+', ' ')
+        line.replace(self.regex_str[3],' ')
+        stops = set(stopwords.words("english"))
+        row = BeautifulSoup(line,'html.parser').get_text()
+        if removeSymbol:
+            row = re.sub('[^a-zA-Z0-9]', ' ', row)
+        words = row.split()
+        if remove_stopwords:
+            words = [w for w in words if not w in stops and not w.replace('.', '', 1).isdigit()]
+        row = ' '.join(words)
+        return row
+
+    def create_vectorizer(self, text, max_features = 1000, n_gram=(1,4)):
         logger.info("Creating Counting Vectorizer...")
         self.vectorizer = CountVectorizer(analyzer = "word",
                              tokenizer = None,
                              preprocessor = None,
                              stop_words = None,
+                             ngram_range= n_gram,
                              max_features = max_features)
 
         data_vector = self.vectorizer.fit_transform(text)
