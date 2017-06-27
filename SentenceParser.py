@@ -88,7 +88,7 @@ class SentenceParser:
             else:
                 result[row] = self.data.loc[self.data[column] == row]
             printProgressBar(idx+1, mylist.shape[0], prefix='Progress:', suffix='Complete', length=50)
-            print "\nThe Shape of "+ row + " is "+str(result[row].shape)
+            # print "\nThe Shape of "+ row + " is "+str(result[row].shape)
             idx += 1
         return result
 
