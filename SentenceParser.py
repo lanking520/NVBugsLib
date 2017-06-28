@@ -5,6 +5,8 @@ import pandas as pd
 import os.path
 import logging
 from sklearn.feature_extraction.text import CountVectorizer
+import nltk
+# nltk.download("stopwords")
 from nltk.corpus import stopwords
 from bs4 import BeautifulSoup
 import sys
@@ -98,8 +100,9 @@ class SentenceParser:
     def get_column(self,column):
         return self.data[column].values.tolist()
 
-    def processtext(self, column, removeSymbol = True, remove_stopwords=False):
+    def processtext(self, column, removeSymbol = True, remove_stopwords=False, stemming=False):
         logger.info("Start Data Cleaning...")
+        porter = nltk.PorterStemmer()
         self.data[column] = self.data[column].str.replace(r'[\n\r\t]+', ' ')
         # Remove URLs
         self.data[column] = self.data[column].str.replace(self.regex_str[3],' ')
@@ -114,6 +117,8 @@ class SentenceParser:
             words = row.split()
             if remove_stopwords:
                 words = [w for w in words if not w in stops and not w.replace('.', '', 1).isdigit()]
+            if stemming:
+                words = [porter.stem(w) for w in words]
             row = ' '.join(words)
             tempcol[i] = row.lower()
             printProgressBar(i+1, len(tempcol), prefix='Progress:', suffix='Complete', length=50)
