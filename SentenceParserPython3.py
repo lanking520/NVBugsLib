@@ -132,6 +132,67 @@ class SentenceParser:
         row = ' '.join(words)
         return row
 
+    def synop_clean(self, column , new_name):
+        logger.info("Synopsis Cleaner Start...")
+        df = self.data
+        df[new_name] = df[column].str.replace(r'[\n\r\t]+', ' ')
+        df[new_name] = df[column].str.replace(r'[\[\]/:?\\"|]+', ' ')
+
+    def matchhtml(self, test_str):
+        pattern = r'http[s]?://(?:[a-z]|[0-9]|[=#$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+'
+        return re.findall(pattern, test_str), re.sub(pattern, ' ', test_str)
+
+    def matchfile(self, test_str):
+        pattern = r'(( [A-Za-z]:|\\|/|\./)[a-zA-Z0-9_\.\\/#&~!%]+)'
+        templist = []
+        for item in re.findall(pattern, test_str):
+            templist.append(item[0])
+        return templist, re.sub(pattern, ' ', test_str)
+
+    def removequot(self, test_str):
+        pattern = r'&.*?;'
+        text = re.sub(pattern, ' ', test_str)
+        text = re.sub(r'[\[\]/:?\\"|`,]+', ' ',text)
+        return text
+
+    def removebracket(self, test_str):
+        pattern = r'<.*?>'
+        return re.sub(pattern, ' ', test_str)
+
+    def description_clean(self, column, new_name):
+        logger.info("Description Cleaner Start...")
+        df = self.data
+        df[new_name] = df[column].str.replace(r'[\n\r\t\a\b]+', ' ')
+        # Remove non-printable words
+        df[new_name] = df[new_name].str.replace(r'[^\x00-\x7f]+', '')
+        # df[new_name] = df[column].str.replace(r'http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+',' ')
+        templist = df[new_name].tolist()
+        htmls = []
+        converted = []
+        filepaths = []
+        printProgressBar(0, df.shape[0], prefix = 'Progress', suffix = 'Completed',length = 50)
+        for idx, row in enumerate(templist):
+            # Determine if it is float('nan')
+            if row == row:
+                html, str_nohtml = self.matchhtml(row)
+                htmls.append(' '.join(html))
+                filepath, str_nofilepath = self.matchfile(str_nohtml)
+                filepaths.append(' '.join(filepath))
+                text = BeautifulSoup(str_nofilepath,'html.parser').get_text()
+                text = self.removebracket(text)
+                text = self.removequot(text)
+                converted.append(text)
+            else:
+                converted.append(row)
+                htmls.append('')
+                filepaths.append('')
+                # converted.append(row)
+            printProgressBar(idx, df.shape[0], prefix = 'Progress', suffix = 'Completed',length = 50)
+        df[new_name] = converted
+        df['html'] = htmls
+        df['filepath'] = filepaths
+
+
     def create_vectorizer(self, text, max_features = 1000, n_gram=(1,4)):
         logger.info("Creating Counting Vectorizer...")
         self.vectorizer = CountVectorizer(analyzer = "word",
