@@ -2,3 +2,5 @@
 .idea/*
 DuplicateBugs.csv
 nvbugs.json
+*.pyc
+.ipynb_checkpoints/*
