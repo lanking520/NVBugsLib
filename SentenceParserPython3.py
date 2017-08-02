@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import re
-import pandas as pd
-import os.path
+from bs4 import BeautifulSoup
 import logging
-from sklearn.feature_extraction.text import CountVectorizer
 import nltk
 # nltk.download("stopwords")
 from nltk.corpus import stopwords
-from bs4 import BeautifulSoup
+import os.path
+import pandas as pd
+import re
+from sklearn.feature_extraction.text import CountVectorizer
 import sys
 
 logger = logging.getLogger(__name__)
@@ -23,23 +23,25 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
 class SentenceParser:
 
     regex_str = [
-    r'<[^>]+>', # HTML tags
-    r'(?:@[\w_]+)', # @-mentions
-    r"(?:\#+[\w_]+[\w\'_\-]*[\w_]+)", # hash-tags
-    r'http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+', # URLs
- 
-    r'(?:(?:\d+,?)+(?:\.?\d+)?)', # numbers
-    r"(?:[a-z][a-z'\-_]+[a-z])", # words with - and '
-    r'(?:[\w_]+)', # other words
-    r'(?:\S)' # anything else
+        r'<[^>]+>',                                                                     # HTML tags
+        r'(?:@[\w_]+)',                                                                 # @-mentions
+        r"(?:\#+[\w_]+[\w\'_\-]*[\w_]+)",                                               # hash-tags
+        r'http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+',   # URLs
+        r'(?:(?:\d+,?)+(?:\.?\d+)?)',                                                   # numbers
+        r"(?:[a-z][a-z'\-_]+[a-z])",                                                    # words with - and '
+        r'(?:[\w_]+)',                                                                  # other words
+        r'(?:\S)'                                                                       # anything else
     ]
 
     def __init__(self, loggingLevel = 20):
         self.data = None
+        self.porter = nltk.PorterStemmer()
+        self.stops = set(stopwords.words("english"))
         logging.basicConfig(level=loggingLevel)
         pass
 
-    def readfile(self, filepath, filetype, encod ='ISO-8859-1', header =None):
+    # Read File and Import File Section
+    def read_file(self, filepath, filetype, encod ='ISO-8859-1', header =None):
         logger.info('Start reading File')
         if not os.path.isfile(filepath):
             logger.error("File Not Exist!")
@@ -57,7 +59,7 @@ class SentenceParser:
         logger.debug(df)
         self.data = df
 
-    def importdata(self, data):
+    def import_data(self, data):
         logger.info('Import DataFrame')
         if isinstance(data, pd.core.frame.DataFrame):
             self.data = data
@@ -65,13 +67,14 @@ class SentenceParser:
             logger.error("Data Type not Accepted! Please use pandas.core.frame.DataFrame")
             sys.exit()
 
-    def dfmerge(self, columns, name):
+    # Operation on the Dataset 
+    def merge_column(self, columns, name):
         logger.info('Merge headers %s to %s', str(columns), name)
         self.data[name] = ''
         for header in columns:
             self.data[name] += ' ' + self.data[header]
 
-    def splitbycolumn(self,column, reset_index = False):
+    def split_by_column(self,column, reset_index = False):
         logger.info("Start Spliting data through the column values")
         mylist = self.data[column].unique()
         result = {}
@@ -93,50 +96,54 @@ class SentenceParser:
     def get_column(self,column):
         return self.data[column].values.tolist()
 
-    def processtext(self, column, removeSymbol = True, remove_stopwords=False, stemming=False):
+    # Start cleaning the text from column
+    def process_text(self, column, remove_symbol = True, remove_stopwords=False, stemming=False):
         logger.info("Start Data Cleaning...")
-        porter = nltk.PorterStemmer()
         self.data[column] = self.data[column].str.replace(r'[\n\r\t]+', ' ')
         # Remove URLs
         self.data[column] = self.data[column].str.replace(self.regex_str[3],' ')
         tempcol = self.data[column].values.tolist()
-        stops = set(stopwords.words("english"))
+        
         # This part takes a lot of times
         printProgressBar(0, len(tempcol), prefix='Progress:', suffix='Complete', length=50)
         for i in range(len(tempcol)):
             row = BeautifulSoup(tempcol[i],'html.parser').get_text()
-            if removeSymbol:
+            if remove_symbol:
                 row = re.sub('[^a-zA-Z0-9]', ' ', row)
             words = row.split()
             if remove_stopwords:
-                words = [w for w in words if not w in stops and not w.replace('.', '', 1).isdigit()]
+                words = [w for w in words if not w in self.stops and not w.replace('.', '', 1).isdigit()]
             if stemming:
-                words = [porter.stem(w) for w in words]
+                words = [self.porter.stem(w) for w in words]
             row = ' '.join(words)
             tempcol[i] = row.lower()
             printProgressBar(i+1, len(tempcol), prefix='Progress:', suffix='Complete', length=50)
         print("\n")
         return tempcol
 
-    def processline(self, line, removeSymbol = True, remove_stopwords=False):
+    # Cleaning text based on text input
+    def process_line(self, line, remove_symbol = True, remove_stopwords=False, stemming = False):
         line.replace(r'[\n\r\t]+', ' ')
         line.replace(self.regex_str[3],' ')
-        stops = set(stopwords.words("english"))
         row = BeautifulSoup(line,'html.parser').get_text()
-        if removeSymbol:
+        if remove_symbol:
             row = re.sub('[^a-zA-Z0-9]', ' ', row)
         words = row.split()
         if remove_stopwords:
-            words = [w for w in words if not w in stops and not w.replace('.', '', 1).isdigit()]
+            words = [w for w in words if not w in self.stops and not w.replace('.', '', 1).isdigit()]
+        if stemming:
+                words = [self.porter.stem(w) for w in words]
         row = ' '.join(words)
         return row
 
+    # Designed for NVBugs for Synopsis Clean
     def synop_clean(self, column , new_name):
         logger.info("Synopsis Cleaner Start...")
         df = self.data
         df[new_name] = df[column].str.replace(r'[\n\r\t]+', ' ')
         df[new_name] = df[column].str.replace(r'[\[\]/:?\\"|]+', ' ')
 
+    # helper function for Description Clean
     def matchhtml(self, test_str):
         pattern = r'http[s]?://(?:[a-z]|[0-9]|[=#$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+'
         return re.findall(pattern, test_str), re.sub(pattern, ' ', test_str)
@@ -158,6 +165,7 @@ class SentenceParser:
         pattern = r'<.*?>'
         return re.sub(pattern, ' ', test_str)
 
+    # Designed for NVBugs for Description Clean
     def description_clean(self, column, new_name):
         logger.info("Description Cleaner Start...")
         df = self.data
@@ -191,7 +199,7 @@ class SentenceParser:
         df['html'] = htmls
         df['filepath'] = filepaths
 
-
+    # Statistic area, create vectorizer for analysis
     def create_vectorizer(self, text, max_features = 1000, n_gram=(1,4)):
         logger.info("Creating Counting Vectorizer...")
         self.vectorizer = CountVectorizer(analyzer = "word",
@@ -212,16 +220,3 @@ class SentenceParser:
 
     def get_sample(self, num):
         return self.data.sample(num)
-
-
-
-if __name__ == '__main__':
-    SP = SentenceParser(10)
-    SP.readfile('../NVIDIA_TEMP/dataset/nvbugs.json','json')
-    SP.importdata(SP.data)
-    SP.dfmerge(['Module','Description','Synopsis'],'X')
-    # print SP.processtext('X', True, False)[0]
-    text = SP.processtext('X', True, True)
-    # print SP.create_vectorizer(text)
-    # print SP.get_top()[0:20]
-    # print SP.splitbycolumn('Module').values()[0]
